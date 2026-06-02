@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+
+{% block title %}Targets - Bug Bounty Workspace Assistant{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-8">
+        <h1 class="h3">🎯 Targets</h1>
+    </div>
+    <div class="col-md-4 text-end">
+        <a href="{{ url_for('targets.create_target') }}" class="btn btn-primary">
+            <i class="bi bi-plus-circle"></i> Add Target
+        </a>
+    </div>
+</div>
+
+<!-- Flash Messages -->
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        {% for category, message in messages %}
+            <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+{% endwith %}
+
+<!-- Filter Buttons -->
+<div class="mb-4">
+    <div class="btn-group" role="group">
+        <a href="{{ url_for('targets.list_targets', status='all') }}"
+           class="btn {% if current_status == 'all' %}btn-primary{% else %}btn-outline-primary{% endif %}">
+            All Targets
+        </a>
+        <a href="{{ url_for('targets.list_targets', status='active') }}"
+           class="btn {% if current_status == 'active' %}btn-success{% else %}btn-outline-success{% endif %}">
+            Active
+        </a>
+        <a href="{{ url_for('targets.list_targets', status='paused') }}"
+           class="btn {% if current_status == 'paused' %}btn-warning{% else %}btn-outline-warning{% endif %}">
+            Paused
+        </a>
+        <a href="{{ url_for('targets.list_targets', status='completed') }}"
+           class="btn {% if current_status == 'completed' %}btn-secondary{% else %}btn-outline-secondary{% endif %}">
+            Completed
+        </a>
+    </div>
+</div>
+
+<!-- Targets Table -->
+{% if targets %}
+    <div class="table-responsive">
+        <table class="table table-hover">
+            <thead class="table-light">
+                <tr>
+                    <th>Name</th>
+                    <th>Scope</th>
+                    <th>Status</th>
+                    <th>Priority</th>
+                    <th>Created</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for target in targets %}
+                    <tr>
+                        <td>
+                            <a href="{{ url_for('targets.view_target', target_id=target.id) }}" class="text-decoration-none">
+                                <strong>{{ target.name }}</strong>
+                            </a>
+                        </td>
+                        <td>
+                            <small class="text-muted" title="{{ target.scope }}">
+                                {{ target.scope[:50] }}{% if target.scope|length > 50 %}...{% endif %}
+                            </small>
+                        </td>
+                        <td>
+                            {% if target.status == 'active' %}
+                                <span class="badge bg-success">Active</span>
+                            {% elif target.status == 'paused' %}
+                                <span class="badge bg-warning">Paused</span>
+                            {% else %}
+                                <span class="badge bg-secondary">Completed</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if target.priority == 1 %}
+                                <span class="badge bg-danger">High</span>
+                            {% elif target.priority == 2 %}
+                                <span class="badge bg-warning">Medium</span>
+                            {% else %}
+                                <span class="badge bg-info">Low</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <small class="text-muted">{{ target.created_at.strftime('%Y-%m-%d') }}</small>
+                        </td>
+                        <td>
+                            <a href="{{ url_for('targets.view_target', target_id=target.id) }}" class="btn btn-sm btn-info">
+                                View
+                            </a>
+                            <a href="{{ url_for('targets.edit_target', target_id=target.id) }}" class="btn btn-sm btn-warning">
+                                Edit
+                            </a>
+                            <button type="button" class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#deleteModal{{ target.id }}">
+                                Delete
+                            </button>
+                        </td>
+                    </tr>
+
+                    <!-- Delete Modal -->
+                    <div class="modal fade" id="deleteModal{{ target.id }}" tabindex="-1">
+                        <div class="modal-dialog">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title">Confirm Delete</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                </div>
+                                <div class="modal-body">
+                                    Are you sure you want to delete target <strong>{{ target.name }}</strong>?
+                                    <p class="text-danger small mt-2">This action cannot be undone. All related data will be deleted.</p>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                    <form method="POST" action="{{ url_for('targets.delete_target', target_id=target.id) }}" style="display:inline;">
+                                        <button type="submit" class="btn btn-danger">Delete Target</button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% else %}
+    <div class="alert alert-info" role="alert">
+        <h4 class="alert-heading">No targets found</h4>
+        <p>Start by <a href="{{ url_for('targets.create_target') }}" class="alert-link">creating a new target</a></p>
+    </div>
+{% endif %}
+
+<style>
+    .btn-group .btn {
+        font-size: 0.9rem;
+    }
+</style>
+{% endblock %}

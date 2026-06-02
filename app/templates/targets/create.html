@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+
+{% block title %}{% if target %}Edit Target{% else %}Create Target{% endif %} - Bug Bounty Workspace Assistant{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8 mx-auto">
+        <h1 class="h3 mb-4">
+            {% if target %}
+                ✏️ Edit Target
+            {% else %}
+                ➕ Create New Target
+            {% endif %}
+        </h1>
+
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <div class="card shadow-sm">
+            <div class="card-body p-4">
+                <form method="POST" novalidate>
+                    <!-- Name Field -->
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Target Name <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="name" name="name"
+                               value="{% if target %}{{ target.name }}{% endif %}"
+                               placeholder="e.g., example.com, ACME Corp"
+                               required>
+                        <small class="text-muted">Unique identifier for this target</small>
+                    </div>
+
+                    <!-- Description Field -->
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Description</label>
+                        <textarea class="form-control" id="description" name="description" rows="3"
+                                  placeholder="Additional information about this target">{% if target %}{{ target.description }}{% endif %}</textarea>
+                        <small class="text-muted">Optional: notes, program URL, rewards info, etc.</small>
+                    </div>
+
+                    <!-- Scope Field -->
+                    <div class="mb-3">
+                        <label for="scope" class="form-label">Scope <span class="text-danger">*</span></label>
+                        <textarea class="form-control" id="scope" name="scope" rows="4"
+                                  placeholder="List items in scope (one per line or comma-separated)&#10;Example:&#10;*.example.com&#10;api.example.com&#10;1.2.3.0/24"
+                                  required>{% if target %}{{ target.scope }}{% endif %}</textarea>
+                        <small class="text-muted">Specify domains, subdomains, IP ranges in scope</small>
+                    </div>
+
+                    <!-- Out of Scope Field -->
+                    <div class="mb-3">
+                        <label for="out_of_scope" class="form-label">Out of Scope</label>
+                        <textarea class="form-control" id="out_of_scope" name="out_of_scope" rows="3"
+                                  placeholder="List items explicitly out of scope&#10;Example:&#10;staging.example.com&#10;admin-only.example.com">{% if target %}{{ target.out_of_scope }}{% endif %}</textarea>
+                        <small class="text-muted">Items you should NOT test</small>
+                    </div>
+
+                    <!-- Status Field -->
+                    <div class="mb-3">
+                        <label for="status" class="form-label">Status</label>
+                        <select class="form-select" id="status" name="status">
+                            <option value="active" {% if not target or target.status == 'active' %}selected{% endif %}>
+                                Active - Currently hunting
+                            </option>
+                            <option value="paused" {% if target and target.status == 'paused' %}selected{% endif %}>
+                                Paused - Temporarily paused
+                            </option>
+                            <option value="completed" {% if target and target.status == 'completed' %}selected{% endif %}>
+                                Completed - Hunting finished
+                            </option>
+                        </select>
+                    </div>
+
+                    <!-- Priority Field -->
+                    <div class="mb-4">
+                        <label for="priority" class="form-label">Priority</label>
+                        <select class="form-select" id="priority" name="priority">
+                            <option value="1" {% if target and target.priority == 1 %}selected{% endif %}>
+                                🔴 High - Focus on this
+                            </option>
+                            <option value="2" {% if target and target.priority == 2 %}selected{% endif %}>
+                                🟡 Medium - Regular attention
+                            </option>
+                            <option value="3" {% if not target or target.priority == 3 %}selected{% endif %}>
+                                🔵 Low - Lower priority
+                            </option>
+                        </select>
+                    </div>
+
+                    <!-- Buttons -->
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <a href="{{ url_for('targets.list_targets') }}" class="btn btn-secondary">
+                            Cancel
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            {% if target %}
+                                Update Target
+                            {% else %}
+                                Create Target
+                            {% endif %}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Help Text -->
+        <div class="alert alert-light mt-4" role="alert">
+            <h6 class="alert-heading">💡 Tips</h6>
+            <ul class="mb-0 small">
+                <li>Use <code>*.example.com</code> for wildcard subdomains</li>
+                <li>Use <code>1.2.3.0/24</code> for CIDR notation</li>
+                <li>List multiple items separated by commas or newlines</li>
+                <li>Always respect the Out of Scope list</li>
+            </ul>
+        </div>
+    </div>
+</div>
+{% endblock %}
