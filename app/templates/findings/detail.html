@@ -1,0 +1,234 @@
+{% extends "base.html" %}
+
+{% block title %}{{ finding.title }} - {{ finding.target.name }} - Bug Bounty Workspace Assistant{% endblock %}
+
+{% block content %}
+<!-- Header -->
+<div class="row mb-4">
+    <div class="col-md-8">
+        <h1 class="h3">
+            {{ finding.title }}
+            <span class="badge bg-{{ finding.get_severity_color() }}">{{ finding.severity }}</span>
+            <span class="badge bg-{{ finding.get_status_color() }}">{{ finding.status.capitalize() }}</span>
+        </h1>
+        <p class="text-muted">
+            <a href="{{ url_for('targets.view_target', target_id=finding.target.id) }}" class="text-decoration-none">
+                Target: {{ finding.target.name }}
+            </a>
+        </p>
+    </div>
+    <div class="col-md-4 text-end">
+        <a href="{{ url_for('targets.edit_finding', finding_id=finding.id) }}" class="btn btn-warning">
+            ✏️ Edit
+        </a>
+        <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#deleteModal">
+            🗑️ Delete
+        </button>
+        <a href="{{ url_for('targets.view_target', target_id=finding.target.id) }}#findings" class="btn btn-secondary">
+            ← Back
+        </a>
+    </div>
+</div>
+
+<!-- Flash Messages -->
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        {% for category, message in messages %}
+            <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+{% endwith %}
+
+<!-- Main Content -->
+<div class="row">
+    <!-- Left Column -->
+    <div class="col-lg-8">
+        <!-- Description Card -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-light">
+                <h5 class="mb-0">📝 Description</h5>
+            </div>
+            <div class="card-body">
+                <p>{{ finding.description }}</p>
+            </div>
+        </div>
+
+        <!-- Vulnerability Details Card -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-light">
+                <h5 class="mb-0">🔍 Vulnerability Details</h5>
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <strong>Type</strong>
+                        <p class="text-muted">{{ finding.vulnerability_type }}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Severity</strong>
+                        <p>
+                            <span class="badge bg-{{ finding.get_severity_color() }}">{{ finding.severity }}</span>
+                        </p>
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <strong>Status</strong>
+                        <p>
+                            <span class="badge bg-{{ finding.get_status_color() }}">{{ finding.status.capitalize() }}</span>
+                        </p>
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Affected URL</strong>
+                        <p class="text-muted">
+                            <code>{{ finding.affected_url }}</code>
+                        </p>
+                    </div>
+                </div>
+                {% if finding.endpoint %}
+                    <div class="row">
+                        <div class="col-md-12">
+                            <strong>Linked Endpoint</strong>
+                            <p class="text-muted">
+                                <span class="badge bg-primary">{{ finding.endpoint.http_method }}</span>
+                                <code>{{ finding.endpoint.url }}</code>
+                            </p>
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Reproduction Steps Card -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-light">
+                <h5 class="mb-0">🔄 Reproduction Steps</h5>
+            </div>
+            <div class="card-body">
+                <div style="background-color: #f8f9fa; padding: 15px; border-radius: 5px; white-space: pre-wrap; word-break: break-word; font-family: monospace; font-size: 0.9rem;">
+                    {{ finding.reproduction_steps }}
+                </div>
+            </div>
+        </div>
+
+        <!-- Impact Card -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-light">
+                <h5 class="mb-0">⚠️ Impact</h5>
+            </div>
+            <div class="card-body">
+                <p>{{ finding.impact }}</p>
+            </div>
+        </div>
+
+        <!-- Remediation Card -->
+        {% if finding.remediation %}
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">✅ Remediation</h5>
+                </div>
+                <div class="card-body">
+                    <div style="background-color: #d4edda; padding: 15px; border-radius: 5px; border-left: 4px solid #28a745;">
+                        {{ finding.remediation }}
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Right Sidebar -->
+    <div class="col-lg-4">
+        <!-- Metadata Card -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-light">
+                <h6 class="mb-0">ℹ️ Metadata</h6>
+            </div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-5">Severity</dt>
+                    <dd class="col-sm-7">
+                        <span class="badge bg-{{ finding.get_severity_color() }}">{{ finding.severity }}</span>
+                    </dd>
+
+                    <dt class="col-sm-5">Status</dt>
+                    <dd class="col-sm-7">
+                        <span class="badge bg-{{ finding.get_status_color() }}">{{ finding.status.capitalize() }}</span>
+                    </dd>
+
+                    <dt class="col-sm-5">Type</dt>
+                    <dd class="col-sm-7">
+                        <small>{{ finding.vulnerability_type }}</small>
+                    </dd>
+
+                    <dt class="col-sm-5">Target</dt>
+                    <dd class="col-sm-7">
+                        <small>
+                            <a href="{{ url_for('targets.view_target', target_id=finding.target.id) }}">
+                                {{ finding.target.name }}
+                            </a>
+                        </small>
+                    </dd>
+
+                    <dt class="col-sm-5">Endpoint</dt>
+                    <dd class="col-sm-7">
+                        {% if finding.endpoint %}
+                            <small>
+                                <span class="badge bg-primary">{{ finding.endpoint.http_method }}</span>
+                                {{ finding.endpoint.url[:30] }}
+                            </small>
+                        {% else %}
+                            <small class="text-muted">-</small>
+                        {% endif %}
+                    </dd>
+                </dl>
+            </div>
+        </div>
+
+        <!-- Timeline Card -->
+        <div class="card shadow-sm">
+            <div class="card-header bg-light">
+                <h6 class="mb-0">📅 Timeline</h6>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <small class="text-muted">Created</small>
+                    <p class="mb-0">
+                        <strong>{{ finding.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</strong>
+                    </p>
+                </div>
+                <div>
+                    <small class="text-muted">Last Updated</small>
+                    <p class="mb-0">
+                        <strong>{{ finding.updated_at.strftime('%Y-%m-%d %H:%M:%S') }}</strong>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Finding Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Delete Finding</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                Delete finding <strong>{{ finding.title }}</strong>?
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form method="POST" action="{{ url_for('targets.delete_finding', finding_id=finding.id) }}" style="display:inline;">
+                    <button type="submit" class="btn btn-danger">Delete</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

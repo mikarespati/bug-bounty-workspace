@@ -612,16 +612,485 @@
     </div>
 
     <!-- FINDINGS TAB (PLACEHOLDER) -->
-    <div class="tab-pane fade" id="findings" role="tabpanel" aria-labelledby="findings-tab">
-        <div class="card shadow-sm">
-            <div class="card-header bg-light">
-                <h6 class="mb-0">🔍 Findings</h6>
-            </div>
-            <div class="card-body text-center py-5">
-                <p class="text-muted mb-0">Findings management coming in Sprint 5</p>
+<!-- FINDINGS TAB -->
+<div class="tab-pane fade" id="findings" role="tabpanel" aria-labelledby="findings-tab">
+    <div class="card shadow-sm">
+        <div class="card-header bg-light d-flex justify-content-between align-items-center">
+            <h6 class="mb-0">🔍 Findings ({{ target.findings|length }})</h6>
+            <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#addFindingModal">
+                + Add Finding
+            </button>
+        </div>
+        <div class="card-body">
+            {% if target.findings %}
+                <!-- Findings by Severity -->
+                {% set critical = target.findings|selectattr('severity', 'equalto', 'Critical')|list %}
+                {% set high = target.findings|selectattr('severity', 'equalto', 'High')|list %}
+                {% set medium = target.findings|selectattr('severity', 'equalto', 'Medium')|list %}
+                {% set low = target.findings|selectattr('severity', 'equalto', 'Low')|list %}
+                {% set info = target.findings|selectattr('severity', 'equalto', 'Info')|list %}
+
+                <!-- Critical Findings -->
+                {% if critical %}
+                    <div class="mb-4">
+                        <h6 class="text-danger mb-2">
+                            <span class="badge bg-danger">CRITICAL</span> ({{ critical|length }})
+                        </h6>
+                        {% for finding in critical|sort(attribute='created_at', reverse=True) %}
+                            <div class="card border-danger mb-2">
+                                <div class="card-body p-3">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <div class="flex-grow-1">
+                                            <div class="d-flex align-items-center gap-2 mb-1">
+                                                <h6 class="mb-0">{{ finding.title }}</h6>
+                                                <span class="badge bg-danger">{{ finding.severity }}</span>
+                                                <span class="badge bg-{{ 'primary' if finding.status == 'open' else 'success' if finding.status == 'fixed' else 'warning' if finding.status == 'acknowledged' else 'secondary' }}">
+                                                    {{ finding.status.capitalize() }}
+                                                </span>
+                                            </div>
+                                            <p class="text-muted small mb-2">{{ finding.description[:100] }}{% if finding.description|length > 100 %}...{% endif %}</p>
+                                            <p class="mb-1">
+                                                <small><strong>Type:</strong> {{ finding.vulnerability_type }}</small><br>
+                                                <small><strong>Affected:</strong> <code>{{ finding.affected_url[:50] }}</code></small>
+                                                {% if finding.endpoint %}
+                                                    <br><small><strong>Endpoint:</strong> {{ finding.endpoint.http_method }} {{ finding.endpoint.url }}</small>
+                                                {% endif %}
+                                            </p>
+                                            <small class="text-muted">{{ finding.created_at.strftime('%Y-%m-%d %H:%M') }}</small>
+                                        </div>
+                                        <div class="ms-2 d-flex gap-1">
+                                            <a href="{{ url_for('targets.view_finding', finding_id=finding.id) }}" class="btn btn-sm btn-outline-info" title="View">
+                                                👁️ View
+                                            </a>
+                                            <a href="{{ url_for('targets.edit_finding', finding_id=finding.id) }}" class="btn btn-sm btn-outline-warning" title="Edit">
+                                                ✏️ Edit
+                                            </a>
+                                            <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteFindingModal{{ finding.id }}" title="Delete">
+                                                 ✕
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Delete Finding Modal -->
+                            <div class="modal fade" id="deleteFindingModal{{ finding.id }}" tabindex="-1">
+                                <div class="modal-dialog">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title">Delete Finding</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                        </div>
+                                        <div class="modal-body">
+                                            Delete finding <strong>{{ finding.title }}</strong>?
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                            <form method="POST" action="{{ url_for('targets.delete_finding', finding_id=finding.id) }}" style="display:inline;">
+                                                <button type="submit" class="btn btn-danger">Delete</button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+
+                <!-- High Findings -->
+                {% if high %}
+                    <div class="mb-4">
+                        <h6 class="text-warning mb-2">
+                            <span class="badge bg-warning">HIGH</span> ({{ high|length }})
+                        </h6>
+                        {% for finding in high|sort(attribute='created_at', reverse=True) %}
+                            <div class="card border-warning mb-2">
+                                <div class="card-body p-3">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <div class="flex-grow-1">
+                                            <div class="d-flex align-items-center gap-2 mb-1">
+                                                <h6 class="mb-0">{{ finding.title }}</h6>
+                                                <span class="badge bg-warning">{{ finding.severity }}</span>
+                                                <span class="badge bg-{{ 'primary' if finding.status == 'open' else 'success' if finding.status == 'fixed' else 'warning' if finding.status == 'acknowledged' else 'secondary' }}">
+                                                    {{ finding.status.capitalize() }}
+                                                </span>
+                                            </div>
+                                            <p class="text-muted small mb-2">{{ finding.description[:100] }}{% if finding.description|length > 100 %}...{% endif %}</p>
+                                            <p class="mb-1">
+                                                <small><strong>Type:</strong> {{ finding.vulnerability_type }}</small><br>
+                                                <small><strong>Affected:</strong> <code>{{ finding.affected_url[:50] }}</code></small>
+                                                {% if finding.endpoint %}
+                                                    <br><small><strong>Endpoint:</strong> {{ finding.endpoint.http_method }} {{ finding.endpoint.url }}</small>
+                                                {% endif %}
+                                            </p>
+                                            <small class="text-muted">{{ finding.created_at.strftime('%Y-%m-%d %H:%M') }}</small>
+                                        </div>
+                                        <div class="ms-2">
+                                            <a href="#" class="btn btn-sm btn-outline-info" data-bs-toggle="modal" data-bs-target="#viewFindingModal{{ finding.id }}">
+                                                👁️
+                                            </a>
+                                            <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteFindingModal{{ finding.id }}">
+                                                ✕
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Delete Finding Modal -->
+                            <div class="modal fade" id="deleteFindingModal{{ finding.id }}" tabindex="-1">
+                                <div class="modal-dialog">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title">Delete Finding</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                        </div>
+                                        <div class="modal-body">
+                                            Delete finding <strong>{{ finding.title }}</strong>?
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                            <form method="POST" action="{{ url_for('targets.delete_finding', finding_id=finding.id) }}" style="display:inline;">
+                                                <button type="submit" class="btn btn-danger">Delete</button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+
+                <!-- Medium Findings -->
+                {% if medium %}
+                    <div class="mb-4">
+                        <h6 class="text-info mb-2">
+                            <span class="badge bg-info">MEDIUM</span> ({{ medium|length }})
+                        </h6>
+                        {% for finding in medium|sort(attribute='created_at', reverse=True) %}
+                            <div class="card border-info mb-2">
+                                <div class="card-body p-3">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <div class="flex-grow-1">
+                                            <div class="d-flex align-items-center gap-2 mb-1">
+                                                <h6 class="mb-0">{{ finding.title }}</h6>
+                                                <span class="badge bg-info">{{ finding.severity }}</span>
+                                                <span class="badge bg-{{ 'primary' if finding.status == 'open' else 'success' if finding.status == 'fixed' else 'warning' if finding.status == 'acknowledged' else 'secondary' }}">
+                                                    {{ finding.status.capitalize() }}
+                                                </span>
+                                            </div>
+                                            <p class="text-muted small mb-2">{{ finding.description[:100] }}{% if finding.description|length > 100 %}...{% endif %}</p>
+                                            <p class="mb-1">
+                                                <small><strong>Type:</strong> {{ finding.vulnerability_type }}</small><br>
+                                                <small><strong>Affected:</strong> <code>{{ finding.affected_url[:50] }}</code></small>
+                                                {% if finding.endpoint %}
+                                                    <br><small><strong>Endpoint:</strong> {{ finding.endpoint.http_method }} {{ finding.endpoint.url }}</small>
+                                                {% endif %}
+                                            </p>
+                                            <small class="text-muted">{{ finding.created_at.strftime('%Y-%m-%d %H:%M') }}</small>
+                                        </div>
+                                        <div class="ms-2">
+                                            <a href="#" class="btn btn-sm btn-outline-info" data-bs-toggle="modal" data-bs-target="#viewFindingModal{{ finding.id }}">
+                                                👁️
+                                            </a>
+                                            <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteFindingModal{{ finding.id }}">
+                                                ✕
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Delete Finding Modal -->
+                            <div class="modal fade" id="deleteFindingModal{{ finding.id }}" tabindex="-1">
+                                <div class="modal-dialog">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title">Delete Finding</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                        </div>
+                                        <div class="modal-body">
+                                            Delete finding <strong>{{ finding.title }}</strong>?
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                            <form method="POST" action="{{ url_for('targets.delete_finding', finding_id=finding.id) }}" style="display:inline;">
+                                                <button type="submit" class="btn btn-danger">Delete</button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+
+                <!-- Low Findings -->
+                {% if low %}
+                    <div class="mb-4">
+                        <h6 class="text-secondary mb-2">
+                            <span class="badge bg-secondary">LOW</span> ({{ low|length }})
+                        </h6>
+                        {% for finding in low|sort(attribute='created_at', reverse=True) %}
+                            <div class="card border-secondary mb-2">
+                                <div class="card-body p-3">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <div class="flex-grow-1">
+                                            <div class="d-flex align-items-center gap-2 mb-1">
+                                                <h6 class="mb-0">{{ finding.title }}</h6>
+                                                <span class="badge bg-secondary">{{ finding.severity }}</span>
+                                                <span class="badge bg-{{ 'primary' if finding.status == 'open' else 'success' if finding.status == 'fixed' else 'warning' if finding.status == 'acknowledged' else 'secondary' }}">
+                                                    {{ finding.status.capitalize() }}
+                                                </span>
+                                            </div>
+                                            <p class="text-muted small mb-2">{{ finding.description[:100] }}{% if finding.description|length > 100 %}...{% endif %}</p>
+                                            <p class="mb-1">
+                                                <small><strong>Type:</strong> {{ finding.vulnerability_type }}</small><br>
+                                                <small><strong>Affected:</strong> <code>{{ finding.affected_url[:50] }}</code></small>
+                                                {% if finding.endpoint %}
+                                                    <br><small><strong>Endpoint:</strong> {{ finding.endpoint.http_method }} {{ finding.endpoint.url }}</small>
+                                                {% endif %}
+                                            </p>
+                                            <small class="text-muted">{{ finding.created_at.strftime('%Y-%m-%d %H:%M') }}</small>
+                                        </div>
+                                        <div class="ms-2">
+                                            <a href="#" class="btn btn-sm btn-outline-info" data-bs-toggle="modal" data-bs-target="#viewFindingModal{{ finding.id }}">
+                                                👁️
+                                            </a>
+                                            <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteFindingModal{{ finding.id }}">
+                                                ✕
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Delete Finding Modal -->
+                            <div class="modal fade" id="deleteFindingModal{{ finding.id }}" tabindex="-1">
+                                <div class="modal-dialog">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title">Delete Finding</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                        </div>
+                                        <div class="modal-body">
+                                            Delete finding <strong>{{ finding.title }}</strong>?
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                            <form method="POST" action="{{ url_for('targets.delete_finding', finding_id=finding.id) }}" style="display:inline;">
+                                                <button type="submit" class="btn btn-danger">Delete</button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+
+                <!-- Info Findings -->
+                {% if info %}
+                    <div class="mb-4">
+                        <h6 class="text-muted mb-2">
+                            <span class="badge bg-light text-dark">INFO</span> ({{ info|length }})
+                        </h6>
+                        {% for finding in info|sort(attribute='created_at', reverse=True) %}
+                            <div class="card border-light mb-2">
+                                <div class="card-body p-3">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <div class="flex-grow-1">
+                                            <div class="d-flex align-items-center gap-2 mb-1">
+                                                <h6 class="mb-0">{{ finding.title }}</h6>
+                                                <span class="badge bg-light text-dark">{{ finding.severity }}</span>
+                                                <span class="badge bg-{{ 'primary' if finding.status == 'open' else 'success' if finding.status == 'fixed' else 'warning' if finding.status == 'acknowledged' else 'secondary' }}">
+                                                    {{ finding.status.capitalize() }}
+                                                </span>
+                                            </div>
+                                            <p class="text-muted small mb-2">{{ finding.description[:100] }}{% if finding.description|length > 100 %}...{% endif %}</p>
+                                            <p class="mb-1">
+                                                <small><strong>Type:</strong> {{ finding.vulnerability_type }}</small><br>
+                                                <small><strong>Affected:</strong> <code>{{ finding.affected_url[:50] }}</code></small>
+                                                {% if finding.endpoint %}
+                                                    <br><small><strong>Endpoint:</strong> {{ finding.endpoint.http_method }} {{ finding.endpoint.url }}</small>
+                                                {% endif %}
+                                            </p>
+                                            <small class="text-muted">{{ finding.created_at.strftime('%Y-%m-%d %H:%M') }}</small>
+                                        </div>
+                                        <div class="ms-2">
+                                            <a href="#" class="btn btn-sm btn-outline-info" data-bs-toggle="modal" data-bs-target="#viewFindingModal{{ finding.id }}">
+                                                👁️
+                                            </a>
+                                            <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteFindingModal{{ finding.id }}">
+                                                ✕
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Delete Finding Modal -->
+                            <div class="modal fade" id="deleteFindingModal{{ finding.id }}" tabindex="-1">
+                                <div class="modal-dialog">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title">Delete Finding</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                        </div>
+                                        <div class="modal-body">
+                                            Delete finding <strong>{{ finding.title }}</strong>?
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                            <form method="POST" action="{{ url_for('targets.delete_finding', finding_id=finding.id) }}" style="display:inline;">
+                                                <button type="submit" class="btn btn-danger">Delete</button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+
+            {% else %}
+                <p class="text-muted text-center py-4">
+                    No findings yet.
+                    <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#addFindingModal">
+                        Create one
+                    </button>
+                </p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Add Finding Modal -->
+    <div class="modal fade" id="addFindingModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">➕ Add Finding</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form method="POST" action="{{ url_for('targets.create_finding', target_id=target.id) }}">
+                    <div class="modal-body">
+                        <!-- Title Field -->
+                        <div class="mb-3">
+                            <label for="findingTitle" class="form-label">Title <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="findingTitle" name="title" 
+                                   placeholder="e.g., SQL Injection in Login Form"
+                                   required>
+                        </div>
+
+                        <!-- Description Field -->
+                        <div class="mb-3">
+                            <label for="findingDesc" class="form-label">Description <span class="text-danger">*</span></label>
+                            <textarea class="form-control" id="findingDesc" name="description" rows="3"
+                                      placeholder="Detailed description of the vulnerability"
+                                      required></textarea>
+                        </div>
+
+                        <div class="row">
+                            <!-- Vulnerability Type -->
+                            <div class="col-md-6 mb-3">
+                                <label for="findingType" class="form-label">Type <span class="text-danger">*</span></label>
+                                <select class="form-select" id="findingType" name="vulnerability_type" required>
+                                    <option value="">-- Select Type --</option>
+                                    <option value="XSS">XSS (Cross-Site Scripting)</option>
+                                    <option value="SQLi">SQL Injection</option>
+                                    <option value="CSRF">CSRF (Cross-Site Request Forgery)</option>
+                                    <option value="Auth">Authentication Bypass</option>
+                                    <option value="SSRF">SSRF (Server-Side Request Forgery)</option>
+                                    <option value="LFI">LFI (Local File Inclusion)</option>
+                                    <option value="RFI">RFI (Remote File Inclusion)</option>
+                                    <option value="CORS">CORS Misconfiguration</option>
+                                    <option value="XXE">XXE (XML External Entity)</option>
+                                    <option value="Deserialization">Unsafe Deserialization</option>
+                                    <option value="Race">Race Condition</option>
+                                    <option value="Logic">Business Logic Flaw</option>
+                                    <option value="Info">Information Disclosure</option>
+                                    <option value="Config">Misconfiguration</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                            </div>
+
+                            <!-- Severity -->
+                            <div class="col-md-6 mb-3">
+                                <label for="findingSeverity" class="form-label">Severity <span class="text-danger">*</span></label>
+                                <select class="form-select" id="findingSeverity" name="severity" required>
+                                    <option value="">-- Select Severity --</option>
+                                    <option value="Critical">🔴 Critical</option>
+                                    <option value="High">🟠 High</option>
+                                    <option value="Medium">🟡 Medium</option>
+                                    <option value="Low">🔵 Low</option>
+                                    <option value="Info">⚪ Info</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Affected URL -->
+                        <div class="mb-3">
+                            <label for="findingUrl" class="form-label">Affected URL <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="findingUrl" name="affected_url" 
+                                   placeholder="e.g., https://example.com/login"
+                                   required>
+                        </div>
+
+                        <!-- Reproduction Steps -->
+                        <div class="mb-3">
+                            <label for="findingRepro" class="form-label">Reproduction Steps <span class="text-danger">*</span></label>
+                            <textarea class="form-control" id="findingRepro" name="reproduction_steps" rows="3"
+                                      placeholder="Step-by-step instructions to reproduce the vulnerability"
+                                      required></textarea>
+                        </div>
+
+                        <!-- Impact -->
+                        <div class="mb-3">
+                            <label for="findingImpact" class="form-label">Impact <span class="text-danger">*</span></label>
+                            <textarea class="form-control" id="findingImpact" name="impact" rows="3"
+                                      placeholder="Business and technical impact of this vulnerability"
+                                      required></textarea>
+                        </div>
+
+                        <!-- Remediation -->
+                        <div class="mb-3">
+                            <label for="findingRemediation" class="form-label">Remediation</label>
+                            <textarea class="form-control" id="findingRemediation" name="remediation" rows="2"
+                                      placeholder="Suggested fix or remediation (optional)"></textarea>
+                        </div>
+
+                        <!-- Endpoint Link -->
+                        <div class="mb-3">
+                            <label for="findingEndpoint" class="form-label">Link to Endpoint</label>
+                            <select class="form-select" id="findingEndpoint" name="endpoint_id">
+                                <option value="">-- No Endpoint --</option>
+                                {% for endpoint in target.endpoints|sort(attribute='url') %}
+                                    <option value="{{ endpoint.id }}">{{ endpoint.http_method }} {{ endpoint.url }}</option>
+                                {% endfor %}
+                            </select>
+                            <small class="text-muted">Optional: Link this finding to a known endpoint</small>
+                        </div>
+
+                        <!-- Status -->
+                        <div class="mb-3">
+                            <label for="findingStatus" class="form-label">Status</label>
+                            <select class="form-select" id="findingStatus" name="status">
+                                <option value="open" selected>🔴 Open</option>
+                                <option value="acknowledged">🟡 Acknowledged</option>
+                                <option value="fixed">✅ Fixed</option>
+                                <option value="duplicate">⚪ Duplicate</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Create Finding</button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
+</div>
 
 </div>
 

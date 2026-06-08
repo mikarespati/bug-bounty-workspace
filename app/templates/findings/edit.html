@@ -1,0 +1,163 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Finding - {{ finding.title }} - Bug Bounty Workspace Assistant{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8 mx-auto">
+        <h1 class="h3 mb-4">✏️ Edit Finding</h1>
+
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <div class="card shadow-sm">
+            <div class="card-body p-4">
+                <form method="POST" novalidate>
+                    <!-- Title Field -->
+                    <div class="mb-3">
+                        <label for="title" class="form-label">Title <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="title" name="title"
+                               value="{{ finding.title }}"
+                               placeholder="e.g., SQL Injection in Login Form"
+                               required>
+                    </div>
+
+                    <!-- Description Field -->
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Description <span class="text-danger">*</span></label>
+                        <textarea class="form-control" id="description" name="description" rows="3"
+                                  placeholder="Detailed description of the vulnerability"
+                                  required>{{ finding.description }}</textarea>
+                    </div>
+
+                    <div class="row">
+                        <!-- Vulnerability Type -->
+                        <div class="col-md-6 mb-3">
+                            <label for="vulnerability_type" class="form-label">Type <span class="text-danger">*</span></label>
+                            <select class="form-select" id="vulnerability_type" name="vulnerability_type" required>
+                                <option value="">-- Select Type --</option>
+                                <option value="XSS" {% if finding.vulnerability_type == 'XSS' %}selected{% endif %}>XSS (Cross-Site Scripting)</option>
+                                <option value="SQLi" {% if finding.vulnerability_type == 'SQLi' %}selected{% endif %}>SQL Injection</option>
+                                <option value="CSRF" {% if finding.vulnerability_type == 'CSRF' %}selected{% endif %}>CSRF (Cross-Site Request Forgery)</option>
+                                <option value="Auth" {% if finding.vulnerability_type == 'Auth' %}selected{% endif %}>Authentication Bypass</option>
+                                <option value="SSRF" {% if finding.vulnerability_type == 'SSRF' %}selected{% endif %}>SSRF (Server-Side Request Forgery)</option>
+                                <option value="LFI" {% if finding.vulnerability_type == 'LFI' %}selected{% endif %}>LFI (Local File Inclusion)</option>
+                                <option value="RFI" {% if finding.vulnerability_type == 'RFI' %}selected{% endif %}>RFI (Remote File Inclusion)</option>
+                                <option value="CORS" {% if finding.vulnerability_type == 'CORS' %}selected{% endif %}>CORS Misconfiguration</option>
+                                <option value="XXE" {% if finding.vulnerability_type == 'XXE' %}selected{% endif %}>XXE (XML External Entity)</option>
+                                <option value="Deserialization" {% if finding.vulnerability_type == 'Deserialization' %}selected{% endif %}>Unsafe Deserialization</option>
+                                <option value="Race" {% if finding.vulnerability_type == 'Race' %}selected{% endif %}>Race Condition</option>
+                                <option value="Logic" {% if finding.vulnerability_type == 'Logic' %}selected{% endif %}>Business Logic Flaw</option>
+                                <option value="Info" {% if finding.vulnerability_type == 'Info' %}selected{% endif %}>Information Disclosure</option>
+                                <option value="Config" {% if finding.vulnerability_type == 'Config' %}selected{% endif %}>Misconfiguration</option>
+                                <option value="Other" {% if finding.vulnerability_type == 'Other' %}selected{% endif %}>Other</option>
+                            </select>
+                        </div>
+
+                        <!-- Severity -->
+                        <div class="col-md-6 mb-3">
+                            <label for="severity" class="form-label">Severity <span class="text-danger">*</span></label>
+                            <select class="form-select" id="severity" name="severity" required>
+                                <option value="">-- Select Severity --</option>
+                                <option value="Critical" {% if finding.severity == 'Critical' %}selected{% endif %}>🔴 Critical</option>
+                                <option value="High" {% if finding.severity == 'High' %}selected{% endif %}>🟠 High</option>
+                                <option value="Medium" {% if finding.severity == 'Medium' %}selected{% endif %}>🟡 Medium</option>
+                                <option value="Low" {% if finding.severity == 'Low' %}selected{% endif %}>🔵 Low</option>
+                                <option value="Info" {% if finding.severity == 'Info' %}selected{% endif %}>⚪ Info</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Affected URL -->
+                    <div class="mb-3">
+                        <label for="affected_url" class="form-label">Affected URL <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="affected_url" name="affected_url"
+                               value="{{ finding.affected_url }}"
+                               placeholder="e.g., https://example.com/login"
+                               required>
+                    </div>
+
+                    <!-- Reproduction Steps -->
+                    <div class="mb-3">
+                        <label for="reproduction_steps" class="form-label">Reproduction Steps <span class="text-danger">*</span></label>
+                        <textarea class="form-control" id="reproduction_steps" name="reproduction_steps" rows="4"
+                                  placeholder="Step-by-step instructions to reproduce the vulnerability"
+                                  required>{{ finding.reproduction_steps }}</textarea>
+                    </div>
+
+                    <!-- Impact -->
+                    <div class="mb-3">
+                        <label for="impact" class="form-label">Impact <span class="text-danger">*</span></label>
+                        <textarea class="form-control" id="impact" name="impact" rows="4"
+                                  placeholder="Business and technical impact of this vulnerability"
+                                  required>{{ finding.impact }}</textarea>
+                    </div>
+
+                    <!-- Remediation -->
+                    <div class="mb-3">
+                        <label for="remediation" class="form-label">Remediation</label>
+                        <textarea class="form-control" id="remediation" name="remediation" rows="3"
+                                  placeholder="Suggested fix or remediation (optional)">{{ finding.remediation or '' }}</textarea>
+                    </div>
+
+                    <!-- Endpoint Link -->
+                    <div class="mb-3">
+                        <label for="endpoint_id" class="form-label">Link to Endpoint</label>
+                        <select class="form-select" id="endpoint_id" name="endpoint_id">
+                            <option value="">-- No Endpoint --</option>
+                            {% for endpoint in target.endpoints|sort(attribute='url') %}
+                                <option value="{{ endpoint.id }}" {% if finding.endpoint_id == endpoint.id %}selected{% endif %}>
+                                    {{ endpoint.http_method }} {{ endpoint.url }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                        <small class="text-muted">Optional: Link this finding to a known endpoint</small>
+                    </div>
+
+                    <!-- Status -->
+                    <div class="mb-4">
+                        <label for="status" class="form-label">Status</label>
+                        <select class="form-select" id="status" name="status">
+                            <option value="open" {% if finding.status == 'open' %}selected{% endif %}>🔴 Open</option>
+                            <option value="acknowledged" {% if finding.status == 'acknowledged' %}selected{% endif %}>🟡 Acknowledged</option>
+                            <option value="fixed" {% if finding.status == 'fixed' %}selected{% endif %}>✅ Fixed</option>
+                            <option value="duplicate" {% if finding.status == 'duplicate' %}selected{% endif %}>⚪ Duplicate</option>
+                        </select>
+                    </div>
+
+                    <!-- Buttons -->
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <a href="{{ url_for('targets.view_finding', finding_id=finding.id) }}" class="btn btn-secondary">
+                            Cancel
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            Update Finding
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Help Text -->
+        <div class="alert alert-light mt-4" role="alert">
+            <h6 class="alert-heading">💡 Tips</h6>
+            <ul class="mb-0 small">
+                <li>Be descriptive in reproduction steps for clarity</li>
+                <li>Explain the business impact, not just technical details</li>
+                <li>Link to endpoints when applicable</li>
+                <li>Update status as the vendor responds</li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

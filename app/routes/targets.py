@@ -1,6 +1,6 @@
 from flask import render_template, request, redirect, url_for, flash
 from app.routes import targets_bp
-from app.models import Target, Note, Endpoint
+from app.models import Target, Note, Endpoint, Finding
 from app import db
 
 
@@ -257,3 +257,135 @@ def delete_endpoint(endpoint_id):
         flash(f'Error deleting endpoint: {str(e)}', 'danger')
 
     return redirect(url_for('targets.view_target', target_id=target_id))
+@targets_bp.route('/targets/<int:target_id>/findings/create', methods=['POST'])
+def create_finding(target_id):
+    """Create new finding for target"""
+    target = Target.query.get_or_404(target_id)
+
+    title = request.form.get('title', '').strip()
+    description = request.form.get('description', '').strip()
+    vulnerability_type = request.form.get('vulnerability_type', '').strip()
+    severity = request.form.get('severity', '').strip()
+    affected_url = request.form.get('affected_url', '').strip()
+    reproduction_steps = request.form.get('reproduction_steps', '').strip()
+    impact = request.form.get('impact', '').strip()
+    remediation = request.form.get('remediation', '').strip()
+    endpoint_id = request.form.get('endpoint_id', '').strip()
+    status = request.form.get('status', 'open')
+
+    # Validation
+    if not all([title, description, vulnerability_type, severity, affected_url, reproduction_steps, impact]):
+        flash('All required fields must be filled', 'danger')
+        return redirect(url_for('targets.view_target', target_id=target_id))
+
+    try:
+        endpoint_id_int = None
+        if endpoint_id:
+            endpoint_id_int = int(endpoint_id)
+            # Verify endpoint belongs to this target
+            endpoint = Endpoint.query.get(endpoint_id_int)
+            if not endpoint or endpoint.target_id != target_id:
+                flash('Invalid endpoint selected', 'danger')
+                return redirect(url_for('targets.view_target', target_id=target_id))
+
+        finding = Finding(
+            target_id=target_id,
+            endpoint_id=endpoint_id_int,
+            title=title,
+            description=description,
+            vulnerability_type=vulnerability_type,
+            severity=severity,
+            affected_url=affected_url,
+            reproduction_steps=reproduction_steps,
+            impact=impact,
+            remediation=remediation if remediation else None,
+            status=status
+        )
+        db.session.add(finding)
+        db.session.commit()
+        flash(f'Finding "{title}" created successfully', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error creating finding: {str(e)}', 'danger')
+
+    return redirect(url_for('targets.view_target', target_id=target_id))
+
+
+@targets_bp.route('/findings/<int:finding_id>/delete', methods=['POST'])
+def delete_finding(finding_id):
+    """Delete finding"""
+    finding = Finding.query.get_or_404(finding_id)
+    target_id = finding.target_id
+    finding_title = finding.title
+
+    try:
+        db.session.delete(finding)
+        db.session.commit()
+        flash(f'Finding "{finding_title}" deleted successfully', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error deleting finding: {str(e)}', 'danger')
+
+    return redirect(url_for('targets.view_target', target_id=target_id))
+
+@targets_bp.route('/findings/<int:finding_id>')
+def view_finding(finding_id):
+    """View finding detail"""
+    finding = Finding.query.get_or_404(finding_id)
+    return render_template('findings/detail.html', finding=finding)
+
+
+@targets_bp.route('/findings/<int:finding_id>/edit', methods=['GET', 'POST'])
+def edit_finding(finding_id):
+    """Edit finding"""
+    finding = Finding.query.get_or_404(finding_id)
+    target = finding.target
+
+    if request.method == 'POST':
+        title = request.form.get('title', '').strip()
+        description = request.form.get('description', '').strip()
+        vulnerability_type = request.form.get('vulnerability_type', '').strip()
+        severity = request.form.get('severity', '').strip()
+        affected_url = request.form.get('affected_url', '').strip()
+        reproduction_steps = request.form.get('reproduction_steps', '').strip()
+        impact = request.form.get('impact', '').strip()
+        remediation = request.form.get('remediation', '').strip()
+        endpoint_id = request.form.get('endpoint_id', '').strip()
+        status = request.form.get('status', 'open')
+
+        # Validation
+        if not all([title, description, vulnerability_type, severity, affected_url, reproduction_steps, impact]):
+            flash('All required fields must be filled', 'danger')
+            return redirect(url_for('targets.edit_finding', finding_id=finding_id))
+
+        try:
+            # Validate endpoint if provided
+            if endpoint_id:
+                endpoint_id_int = int(endpoint_id)
+                endpoint = Endpoint.query.get(endpoint_id_int)
+                if not endpoint or endpoint.target_id != finding.target_id:
+                    flash('Invalid endpoint selected', 'danger')
+                    return redirect(url_for('targets.edit_finding', finding_id=finding_id))
+                finding.endpoint_id = endpoint_id_int
+            else:
+                finding.endpoint_id = None
+
+            finding.title = title
+            finding.description = description
+            finding.vulnerability_type = vulnerability_type
+            finding.severity = severity
+            finding.affected_url = affected_url
+            finding.reproduction_steps = reproduction_steps
+            finding.impact = impact
+            finding.remediation = remediation if remediation else None
+            finding.status = status
+
+            db.session.commit()
+            flash(f'Finding "{title}" updated successfully', 'success')
+            return redirect(url_for('targets.view_finding', finding_id=finding_id))
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error updating finding: {str(e)}', 'danger')
+            return redirect(url_for('targets.edit_finding', finding_id=finding_id))
+
+    return render_template('findings/edit.html', finding=finding, target=target)
