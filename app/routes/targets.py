@@ -1,6 +1,6 @@
 from flask import render_template, request, redirect, url_for, flash
 from app.routes import targets_bp
-from app.models import Target
+from app.models import Target, Note, Endpoint
 from app import db
 
 
@@ -28,12 +28,10 @@ def create_target():
         status = request.form.get('status', 'active')
         priority = request.form.get('priority', '3')
 
-        # Validation
         if not name or not scope:
             flash('Name and Scope are required', 'danger')
             return redirect(url_for('targets.create_target'))
 
-        # Check if target already exists
         if Target.query.filter_by(name=name).first():
             flash('Target with this name already exists', 'danger')
             return redirect(url_for('targets.create_target'))
@@ -79,12 +77,10 @@ def edit_target(target_id):
         status = request.form.get('status', 'active')
         priority = request.form.get('priority', '3')
 
-        # Validation
         if not name or not scope:
             flash('Name and Scope are required', 'danger')
             return redirect(url_for('targets.edit_target', target_id=target_id))
 
-        # Check if name is taken by another target
         if name != target.name and Target.query.filter_by(name=name).first():
             flash('Target with this name already exists', 'danger')
             return redirect(url_for('targets.edit_target', target_id=target_id))
@@ -141,5 +137,123 @@ def change_target_status(target_id, new_status):
     except Exception as e:
         db.session.rollback()
         flash(f'Error changing status: {str(e)}', 'danger')
+
+    return redirect(url_for('targets.view_target', target_id=target_id))
+
+
+@targets_bp.route('/targets/<int:target_id>/notes/create', methods=['POST'])
+def create_note(target_id):
+    """Create new note for target"""
+    target = Target.query.get_or_404(target_id)
+
+    title = request.form.get('title', '').strip()
+    content = request.form.get('content', '').strip()
+    note_type = request.form.get('note_type', 'general')
+    is_pinned = request.form.get('is_pinned') == 'on'
+
+    if not title or not content:
+        flash('Title and Content are required', 'danger')
+        return redirect(url_for('targets.view_target', target_id=target_id))
+
+    try:
+        note = Note(
+            target_id=target_id,
+            title=title,
+            content=content,
+            note_type=note_type,
+            is_pinned=is_pinned
+        )
+        db.session.add(note)
+        db.session.commit()
+        flash(f'Note "{title}" created successfully', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error creating note: {str(e)}', 'danger')
+
+    return redirect(url_for('targets.view_target', target_id=target_id))
+
+
+@targets_bp.route('/notes/<int:note_id>/delete', methods=['POST'])
+def delete_note(note_id):
+    """Delete note"""
+    note = Note.query.get_or_404(note_id)
+    target_id = note.target_id
+    note_title = note.title
+
+    try:
+        db.session.delete(note)
+        db.session.commit()
+        flash(f'Note "{note_title}" deleted successfully', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error deleting note: {str(e)}', 'danger')
+
+    return redirect(url_for('targets.view_target', target_id=target_id))
+
+
+@targets_bp.route('/targets/<int:target_id>/endpoints/create', methods=['POST'])
+def create_endpoint(target_id):
+    """Create new endpoint for target"""
+    target = Target.query.get_or_404(target_id)
+
+    url = request.form.get('url', '').strip()
+    http_method = request.form.get('http_method', 'GET')
+    status_code = request.form.get('status_code', '').strip()
+    is_authenticated = request.form.get('is_authenticated') == 'on'
+    tech_stack = request.form.get('tech_stack', '').strip()
+    notes = request.form.get('notes', '').strip()
+
+    if not url:
+        flash('URL is required', 'danger')
+        return redirect(url_for('targets.view_target', target_id=target_id))
+
+    existing = Endpoint.query.filter_by(
+        target_id=target_id,
+        url=url,
+        http_method=http_method
+    ).first()
+
+    if existing:
+        flash('This endpoint already exists for this target', 'warning')
+        return redirect(url_for('targets.view_target', target_id=target_id))
+
+    try:
+        status_code_int = None
+        if status_code:
+            status_code_int = int(status_code)
+
+        endpoint = Endpoint(
+            target_id=target_id,
+            url=url,
+            http_method=http_method,
+            status_code=status_code_int,
+            is_authenticated=is_authenticated,
+            tech_stack=tech_stack if tech_stack else None,
+            notes=notes if notes else None
+        )
+        db.session.add(endpoint)
+        db.session.commit()
+        flash(f'Endpoint "{http_method} {url}" created successfully', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error creating endpoint: {str(e)}', 'danger')
+
+    return redirect(url_for('targets.view_target', target_id=target_id))
+
+
+@targets_bp.route('/endpoints/<int:endpoint_id>/delete', methods=['POST'])
+def delete_endpoint(endpoint_id):
+    """Delete endpoint"""
+    endpoint = Endpoint.query.get_or_404(endpoint_id)
+    target_id = endpoint.target_id
+    endpoint_str = f"{endpoint.http_method} {endpoint.url}"
+
+    try:
+        db.session.delete(endpoint)
+        db.session.commit()
+        flash(f'Endpoint "{endpoint_str}" deleted successfully', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error deleting endpoint: {str(e)}', 'danger')
 
     return redirect(url_for('targets.view_target', target_id=target_id))
